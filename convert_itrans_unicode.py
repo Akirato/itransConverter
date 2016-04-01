@@ -1,4 +1,4 @@
-import codecs
+import codecs,sys
 
 def get_mapping(fi):
     mapping_file = codecs.open(fi,encoding='utf-8')
@@ -16,7 +16,9 @@ def transliterate(mapping,sentence):
 
 if __name__ == "__main__":
     mapping = get_mapping('uni.txt')
-    print transliterate(mapping,unicode("ilayaa AaOr Pyaar"))
-    #for i in mapping.keys():
-    #    print i,mapping[i]
-    #print len(mapping.keys())
+    script,inp,outp = sys.argv 
+    inp_file = codecs.open(inp,encoding='utf-8')
+    out_file = codecs.open(outp,"wb",encoding='utf-8')
+    out = transliterate(mapping,inp_file.read())
+    out_file.write(out)
+    out_file.close()
