@@ -1,11 +1,9 @@
 अ 	a
 आ 	aa
 इ 	i
-ई 	I
-ई	ii
+ई 	I/ii
 उ 	u
-ऊ 	U
-ऊ	uu
+ऊ 	U/uu
 ए 	e
 ऐ 	ai
 ओ 	o
