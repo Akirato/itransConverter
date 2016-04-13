@@ -149,14 +149,14 @@ def resetOptions():
 resetOptions()
 
 
-def _unrecognised(chr):
+def _unrecognised(achr):
     """ Handle unrecognised characters. """
     if options['handleUnrecognised'] == UNRECOGNISED_ECHO:
-        return chr
+        return achr
     elif options['handleUnrecognised'] == UNRECOGNISED_SUBSTITUTE:
         return options['substituteChar']
     else:
-        raise KeyError(chr)
+        raise KeyError(achr)
 
 def py23char(x):
 	try:
@@ -431,8 +431,11 @@ def transliterate(text, inFormat, outFormat, requestOptions={}):
     
         """ Ensure we have the correct encoding for input text. """
         if isinstance(text, str):
-            text = text.decode(options['inputEncoding'])
-            
+            try:
+                text = text.decode(options['inputEncoding'])
+            except:
+            	pass
+
         """ Look up input & output format names. """
         def findFormat(fmt):
             if isinstance(fmt, basestring):
@@ -805,6 +808,7 @@ ITRANS = { \
     'Dh': 0x922,
     'N': 0x923,
     't': 0x924,
+    'z': 0x936,
     'th': 0x925,
     'd': 0x926,
     'dh': 0x927,
@@ -1050,7 +1054,10 @@ def main(argv=None):
         i = 1
         for text in f.readlines():
             if len(text) > 0 and not text.startswith('#'):
-                print(transliterate(text, inFormat, outFormat).strip('\n'))
+                try:
+                    print(transliterate(text, inFormat, outFormat).strip('\n'))
+                except:
+                    print(transliterate(text, inFormat, outFormat).decode().strip('\n'))
             i = i + 1
         f.close()
         return 0
