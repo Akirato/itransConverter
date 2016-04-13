@@ -21,17 +21,37 @@
 # @author Anoop Kunchukuttan 
 #
 
-import sys, codecs, string, itertools, re
+import sys, codecs, itertools, re
 
 import langinfo 
 import itrans_transliterator
 from sinhala_transliterator import SinhalaDevanagariTransliterator  as sdt
+try:
+    unicode = unicode
+except NameError:
+    # 'unicode' is undefined, must be Python 3
+    str = str
+    unicode = str
+    bytes = bytes
+    basestring = (str,bytes)
+else:
+    # 'unicode' exists, must be Python 2
+    str = str
+    unicode = unicode
+    bytes = str
+    basestring = basestring
 
 
+def py23char(x):
+	try:
+		return unichr(x)
+	except:
+		return chr(x)
 
 class UnicodeIndicTransliterator(object):
     """
     Base class for rule-based transliteration among Indian languages. 
+
     Script pair specific transliterators should derive from this class and override the transliterate() method. 
     They can call the super class 'transliterate()' method to avail of the common transliteration
     """
@@ -63,12 +83,13 @@ class UnicodeIndicTransliterator(object):
     def transliterate(text,lang1_code,lang2_code):
         """
         convert the source language script (lang1) to target language script (lang2)
+
         text: text to transliterate
         lang1_code: language 1 code 
         lang1_code: language 2 code 
         """
-        if langinfo.SCRIPT_RANGES.has_key(lang1_code) and langinfo.SCRIPT_RANGES.has_key(lang2_code):
-        #if 1:    
+        if (lang1_code in langinfo.SCRIPT_RANGES) and (lang2_code in langinfo.SCRIPT_RANGES):
+            
             # if Sinhala is source, do a mapping to Devanagari first 
             if lang1_code=='si': 
                 text=sdt.sinhala_to_devanagari(text)
@@ -88,15 +109,15 @@ class UnicodeIndicTransliterator(object):
                     if lang2_code=='ta': 
                         # tamil exceptions 
                         offset=UnicodeIndicTransliterator._correct_tamil_mapping(offset)
-                    newc=unichr(langinfo.SCRIPT_RANGES[lang2_code][0]+offset)
+                    newc=py23char(langinfo.SCRIPT_RANGES[lang2_code][0]+offset)
 
                 trans_lit_text.append(newc)        
 
             # if Sinhala is source, do a mapping to Devanagari first 
             if org_lang2_code=='si': 
-                return sdt.devanagari_to_sinhala(string.join(trans_lit_text,sep=''))
+                return sdt.devanagari_to_sinhala(''.join(trans_lit_text))
 
-            return string.join(trans_lit_text,sep='')
+            return (''.join(trans_lit_text))
         else:
             return text
 
@@ -107,7 +128,7 @@ class ItransTransliterator(object):
 
     @staticmethod
     def to_itrans(text,lang_code):
-        if langinfo.SCRIPT_RANGES.has_key(lang_code):
+        if lang_code in langinfo.SCRIPT_RANGES:
             if lang_code=='ml': 
                 # Change from chillus characters to corresponding consonant+halant
                 text=text.replace(u'\u0d7a',u'\u0d23\u0d4d')
@@ -127,7 +148,7 @@ class ItransTransliterator(object):
 
     @staticmethod
     def from_itrans(text,lang_code):
-        if langinfo.SCRIPT_RANGES.has_key(lang_code): 
+        if lang_code in langinfo.SCRIPT_RANGES: 
             devnag_text=itrans_transliterator.transliterate(text.encode('utf-8'), 'itrans', 'devanagari',
                                  {'outputASCIIEncoded' : False, 'handleUnrecognised': itrans_transliterator.UNRECOGNISED_ECHO})
 
@@ -140,7 +161,7 @@ class ItransTransliterator(object):
 if __name__ == '__main__': 
 
     if len(sys.argv)<4:
-        print "Usage: python unicode_transliterate.py <infile> <outfile> <src_language> <tgt_language>"
+        print("Usage: python unicode_transliterate.py <infile> <outfile> <src_language> <tgt_language>")
         sys.exit(1)
 
     src_language=sys.argv[3]

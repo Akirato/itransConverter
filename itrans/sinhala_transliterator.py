@@ -1,3 +1,4 @@
+
 class SinhalaDevanagariTransliterator(object): 
     """
         A Devanagari to Sinhala transliterator based on explicit Unicode Mapping

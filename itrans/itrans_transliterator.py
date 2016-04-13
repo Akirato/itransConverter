@@ -1,9 +1,12 @@
 """ Transliterate texts between unicode and standard transliteration schemes.
+
 Transliterate texts between non-latin scripts and commonly-used latin
 transliteration schemes. Uses standard Unicode character blocks -- 
 e.g. DEVANAGARI U+0900 ... U+097F -- and transliteration schemes -- 
 e.g. the IAST convention for transliteration of Sanskrit to latin-with-dots.
+
 The following character blocks and transliteration schemes are included:
+
 DEVANAGARI
     IAST
     ITRANS -- http://www.aczoom.com/itrans/#itransencoding (Sanskrit only)
@@ -14,10 +17,14 @@ CYRILLIC
     
 New character blocks and transliteration schemes can be added by creating
 new CharacterBlock and TransliterationScheme objects.
+
 COMMAND LINE USAGE
 ----------------------------
+
 python transliterator.py text inputFormat outputFormat
+
 ... writes the transliterated text to stdout
+
 text -- the text to be transliterated OR the name of a file containing the text
 inputFormat -- the name of the character block or transliteration scheme that
                the text is to be transliterated FROM, e.g. 'CYRILLIC', 'IAST'.
@@ -29,29 +36,39 @@ outputFormat -- the name of the character block or transliteration scheme that
 USAGE
 --------
 Transliterate a text:
+
 >>> import transliterator
 >>> transliterator.transliterate('yogazcittavRttinirodhaH', 'harvardkyoto',
 ...     'devanagari', {'outputASCIIEncoded' : True})
 '&#x92f;&#x94b;&#x917;&#x936;&#x94d;&#x91a;&#x93f;&#x924;&#x94d;&#x924;&#x935;&#x943;&#x924;&#x94d;&#x924;&#x93f;&#x928;&#x93f;&#x930;&#x94b;&#x927;&#x903;'
+
 Create a new CharacterBlock and TransliterationScheme:
+
 >>> import transliterator
 >>> cb = transliterator.CharacterBlock('NEWBLOCK', range(0x901, 0x9FF))
 >>> scheme = transliterator.TransliterationScheme(cb.name, 'NEWSCHEME',
 ...                          {'ab': 0x901, 'cd': 0x902})
 >>> transliterator.transliterate('abcd', scheme, cb, {'outputASCIIEncoded' : True})
 '&#x901;&#x902;'
+
 COPYRIGHT AND DISCLAIMER
 ------------------------------------
 Transliterator is:
+
 version 0.1 software  - use at your own risk.
+
 The IAST, ITRANS and Harvard-Kyoto transliteration schemes have been
 tested for classical Sanskrit, not for any other language.
+
 The Cyrillic alphabet and ISO 9:1995 transliteration (for Russian only)
 are included but have been even more lightly tested than Devanagari.
+
 Copyright (c) 2005 by Alan Little
+
 By obtaining, using, and/or copying this software and/or its
 associated documentation, you agree that you have read, understood,
 and will comply with the following terms and conditions:
+
 Permission to use, copy, modify, and distribute this software and
 its associated documentation for any purpose and without fee is
 hereby granted, provided that the above copyright notice appears in
@@ -59,6 +76,7 @@ all copies, and that both that copyright notice and this permission
 notice appear in supporting documentation, and that the name of 
 the author not be used in advertising or publicity pertaining to 
 distribution of the software without specific, written prior permission.
+
 THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, 
 INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS.  
 IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, INDIRECT OR 
@@ -69,6 +87,7 @@ WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
        
 """
 """ TO DO
+
 cyrillic: GOST & something ASCII-only & sensible
 punctuation &/ numerals:
     HK
@@ -78,12 +97,30 @@ punctuation &/ numerals:
  
 Bugs
 is there a problem with implicit A before visarga?
+
+
 """
 __version__ = '0.1'
 
 import unicodedata
-from sets import Set
+#from sets import Set
 import sys
+
+try:
+    unicode = unicode
+except NameError:
+    # 'unicode' is undefined, must be Python 3
+    str = str
+    unicode = str
+    bytes = bytes
+    basestring = (str,bytes)
+else:
+    # 'unicode' exists, must be Python 2
+    str = str
+    unicode = unicode
+    bytes = str
+    basestring = basestring
+
 
 characterBlocks = {}
 _names = {}
@@ -119,7 +156,13 @@ def _unrecognised(chr):
     elif options['handleUnrecognised'] == UNRECOGNISED_SUBSTITUTE:
         return options['substituteChar']
     else:
-        raise KeyError, chr
+        raise KeyError(chr)
+
+def py23char(x):
+	try:
+		return unichr(x)
+	except:
+		return chr(x)
  
 class TLCharacter (object):
     """ Class representing a Unicode character with its equivalents.
@@ -150,12 +193,12 @@ class TLCharacter (object):
         
         """
         if unicodeHexValue < 0 or unicodeHexValue > 0x10FFFF:
-            raise ValueError, "numeric value outside Unicode range"
+            raise ValueError("numeric value outside Unicode range")
         self.unicodeHexValue = unicodeHexValue
         """ Use name check to filter out unused characters.
               unicodedata.name() raises ValueError for these
         """
-        self.unichr = unichr(self.unicodeHexValue)
+        self.unichr = py23char(self.unicodeHexValue)
         self.name = unicodedata.name(self.unichr)
         self.equivalents = {}
         self._block = block
@@ -179,6 +222,7 @@ class CharacterBlock(dict):
     
     Keys are unicode characters.
     Values are TLCharacter instances.
+
     """
     
     def __init__(self, name, charRange, charClass=TLCharacter):
@@ -274,12 +318,12 @@ class TransliterationScheme(dict):
         self.block = characterBlocks[blockName]
         self.name = schemeName
         for equiv, unicodeHexValue in data.items():
-            self[equiv] = self.block[unichr(unicodeHexValue)]
+            self[equiv] = self.block[py23char(unicodeHexValue)]
             self[equiv].addEquivalent(self.name, equiv)
-        self._longestEntry = max([len(e) for e in data.keys()])
+        self._longestEntry = max([len(e) for e in list(data.keys())])
         if self._longestEntry > 1:
             self._parseTree = {}
-            self._parsedata = data.keys()
+            self._parsedata = list(data.keys())
             self._parsedata.sort()
             self._setupParseTree(0, len(data) - 1, 0, self._parseTree)
         if swapTable is not None:
@@ -332,6 +376,8 @@ class TransliterationScheme(dict):
     def _preprocess(self, text):
         if self.swapTable:
             for c in self.swapTable:
+                if isinstance(text,bytes):
+                	text = text.decode()
                 text = text.replace(c, self.swapTable[c])
         return text
         
@@ -393,7 +439,7 @@ def transliterate(text, inFormat, outFormat, requestOptions={}):
                 try:
                     fmt = _names[fmt.upper()]
                 except KeyError:
-                    raise ValueError, 'unrecognised format ' + fmt
+                    raise ValueError('unrecognised format ' + fmt)
             return fmt
         inFormat = findFormat(inFormat)
         outFormat = findFormat(outFormat)
@@ -401,7 +447,7 @@ def transliterate(text, inFormat, outFormat, requestOptions={}):
         """ Perform sanity checks. """
     
         if not isinstance(text, basestring): 
-                raise TypeError, "The text must be a string or a unicode object"
+                raise TypeError("The text must be a string or a unicode object")
         
         def getBlock(format):
             if isinstance(format, CharacterBlock):
@@ -411,12 +457,12 @@ def transliterate(text, inFormat, outFormat, requestOptions={}):
         inBlock = getBlock(inFormat)
         outBlock = getBlock(outFormat)
         if not inBlock is outBlock:
-            raise ValueError, "incompatible input and output formats"
+            raise ValueError("incompatible input and output formats")
             
         if inFormat is outFormat:
             # They're trying to trick us. Just do a quick sanity check & bounce it back.
             if inFormat._longestEntry == 1:
-                [inFormat[c] for c in Set(text) if not c.isspace()] 
+                [inFormat[c] for c in set(text) if not c.isspace()] 
                 # -> KeyError for extraneous chars.
                 return text
             
@@ -431,6 +477,7 @@ def transliterate(text, inFormat, outFormat, requestOptions={}):
     
             
 """ DEVANAGARI PROCESSING
+
     Specialised classes & functions to handle Devanagari.
     
 """
@@ -446,10 +493,10 @@ class DevanagariCharacter (TLCharacter):
         - so need to hard code the ranges
     """
     _vowelOffset = 0x93E - 0x906
-    _depVowelRange = range(0x93E, 0x94D) + [0x962,0x963]
-    _vowelRange = range(0x904, 0x915) + [0x960,0x961]
-    _VIRAMA = unichr(0x94D)
-    _LETTER_A = unichr(0x905)
+    _depVowelRange = list(range(0x93E, 0x94D)) + [0x962,0x963]
+    _vowelRange = list(range(0x904, 0x915)) + [0x960,0x961]
+    _VIRAMA = py23char(0x94D)
+    _LETTER_A = py23char(0x905)
     """ Unicode calls agravaha a letter. Not for our purposes:
         we need to not treat it as one for handling virama & implicit 'a'
     """
@@ -482,15 +529,15 @@ class DevanagariCharacter (TLCharacter):
         if unicodeHexValue in DevanagariCharacter._depVowelRange:
             vowel=None
             if  unicodeHexValue == 0x962: 
-                vowel=block[unichr(0x90C)]
+                vowel=block[py23char(0x90C)]
             elif  unicodeHexValue == 0x963: 
-                vowel=block[unichr(0x961)]
+                vowel=block[py23char(0x961)]
             elif unicodeHexValue == 0x944:
                 ## dependency vowel sign for vocalic RR is set only when processing the vowel, since the maatra precedes the vowel in the Unicode chart
                 ## That step's cpde is above, with documentation 
                 pass 
             else:                 
-                vowel=block[unichr(unicodeHexValue - DevanagariCharacter._vowelOffset)]
+                vowel=block[py23char(unicodeHexValue - DevanagariCharacter._vowelOffset)]
             if vowel is not None:                 
                 # The check condition is for 0x944, processing deferred for later
                 vowel._setDependentVowel(unicodeHexValue)
@@ -508,8 +555,8 @@ class DevanagariCharacter (TLCharacter):
     def _setDependentVowel(self, unicodeHexValue):
         if unicodeHexValue is not None:
             if not self.isVowel: raise ValueError
-            self._dependentVowel = unichr(unicodeHexValue)
-            self._block[unichr(unicodeHexValue)] = self
+            self._dependentVowel = py23char(unicodeHexValue)
+            self._block[py23char(unicodeHexValue)] = self
             
 class _Devanagari(object):
     """ Holder class for the Devanagari transliteration algorithm. """
@@ -648,14 +695,16 @@ class DevanagariTransliterationScheme(TransliterationScheme, _Devanagari):
   
 
 """ DEVANAGARI DATA
+
 set up the Devanagari character set with three commonly used transliteration 
 schemes:
 ITRANS
 Harvard Kyoto
 IAST
+
 """
 
-DevanagariCharacterBlock('DEVANAGARI', range(0x900, 0x97F))
+DevanagariCharacterBlock('DEVANAGARI', list(range(0x900, 0x97F)))
 
 HARVARDKYOTO = { \
     'M': 0x902,
@@ -801,11 +850,14 @@ ITRANS = { \
      }
      
 """ ITrans uses some characters only in common ligatures.
+
 The easiest way to deal with these is to replace them with their
 "normal consonant" equivalents before we try to transliterate.
+
 (This assumes we are mainly transliterating iTrans inbound, and that 
 the normal consonants are acceptable outbound. ITrans is not a good
 choice for outbound anyway because it has so many ambiguities)
+
 """
 _swapTable = {'GY': 'j~n', 'dny': 'j~n', 'x': 'kSh',
                     }
@@ -813,16 +865,16 @@ _swapTable = {'GY': 'j~n', 'dny': 'j~n', 'x': 'kSh',
 DevanagariTransliterationScheme('DEVANAGARI', 'ITRANS', ITRANS, _swapTable)
 
 IAST = { \
-    unichr(0x1E43): 0x902,
-    unichr(0x1E25): 0x903,
+    py23char(0x1E43): 0x902,
+    py23char(0x1E25): 0x903,
     'a': 0x905,
-    unichr(0x101): 0x906,
+    py23char(0x101): 0x906,
     'i': 0x907,
-    unichr(0x12B): 0x908,
+    py23char(0x12B): 0x908,
     'u': 0x909,
-    unichr(0x16B): 0x90A,
-    unichr(0x1E5B): 0x90B,
-    unichr(0x1E37): 0x90C,
+    py23char(0x16B): 0x90A,
+    py23char(0x1E5B): 0x90B,
+    py23char(0x1E37): 0x90C,
     'e': 0x90F,
     'ai': 0x910,
     'o': 0x913,
@@ -831,17 +883,17 @@ IAST = { \
     'kh': 0x916,
     'g': 0x917,
     'gh': 0x918,
-    unichr(0x1E45): 0x919,
+    py23char(0x1E45): 0x919,
     'c': 0x91A,
     'ch': 0x91B,
     'j': 0x91C,
     'jh': 0x91D,
-    unichr(0xF1): 0x91E,
-    unichr(0x1E6D): 0x91F,
-    unichr(0x1E6D) +'h': 0x920,
-    unichr(0x1E0D): 0x921,
-    unichr(0x1E0D) + 'h': 0x922,
-    unichr(0x1E47): 0x923,
+    py23char(0xF1): 0x91E,
+    py23char(0x1E6D): 0x91F,
+    py23char(0x1E6D) +'h': 0x920,
+    py23char(0x1E0D): 0x921,
+    py23char(0x1E0D) + 'h': 0x922,
+    py23char(0x1E47): 0x923,
     't': 0x924,
     'th': 0x925,
     'd': 0x926,
@@ -856,12 +908,12 @@ IAST = { \
     'r': 0x930,
     'l': 0x932,
     'v': 0x935,
-    unichr(0x15B): 0x936,
-    unichr(0x1E63): 0x937,
+    py23char(0x15B): 0x936,
+    py23char(0x1E63): 0x937,
     's': 0x938,
     'h': 0x939,
     "'": 0x93D, # avagraha
-    'O' + unichr(0x1E43): 0x950,
+    'O' + py23char(0x1E43): 0x950,
     '.': 0x0964,
     '..': 0x0965,
     '0': 0x0966,
@@ -880,24 +932,26 @@ DevanagariTransliterationScheme('DEVANAGARI', 'IAST', IAST)
 
 
 """ CYRILLIC DATA
+
 set up Cyrillic and the ISO 9:1995 (Russian) transliteration scheme.
     
 The Cyrillic unicode range contains about 4x what contemporary Russian
 uses - other languages & history wacky stuff. Set the full range up in case
 anybody ever has occasion to use it.
+
 """
 
-CharacterBlock('CYRILLIC', range(0x400, 0x510))
+CharacterBlock('CYRILLIC', list(range(0x400, 0x510)))
 
 _ISO9RUS = {\
-	unichr(0x0CB): 0x401, # IO
+	py23char(0x0CB): 0x401, # IO
 	'A': 0x410,
 	'B': 0x411,
 	'V': 0x412,
 	'G': 0x413,
 	'D': 0x414,
 	'E': 0x415,
-	unichr(0x17D): 0x416, # ZHE
+	py23char(0x17D): 0x416, # ZHE
 	'Z': 0x417,
 	'I': 0x418,
 	'J': 0x419,
@@ -914,22 +968,22 @@ _ISO9RUS = {\
 	'F': 0x424,
 	'H': 0x425,
 	'C': 0x426, # TS
-	unichr(0x10C): 0x427, # CH
-	unichr(0x160): 0x428, # SH
-	unichr(0x15C): 0x429, # SHCH
-	unichr(0x2BA): 0x42a, # hard
+	py23char(0x10C): 0x427, # CH
+	py23char(0x160): 0x428, # SH
+	py23char(0x15C): 0x429, # SHCH
+	py23char(0x2BA): 0x42a, # hard
 	'Y': 0x42b,
-	unichr(0x2B9): 0x42c, # soft
-	unichr(0x0C8): 0x42d, # YE
-	unichr(0x0DB): 0x42e, # YU
-	unichr(0x0C2): 0x42f, # YA
+	py23char(0x2B9): 0x42c, # soft
+	py23char(0x0C8): 0x42d, # YE
+	py23char(0x0DB): 0x42e, # YU
+	py23char(0x0C2): 0x42f, # YA
 	'a': 0x430,
 	'b': 0x431,
 	'v': 0x432,
 	'g': 0x433,
 	'd': 0x434,
 	'e': 0x435,
-	unichr(0x17E): 0x436, # zhe
+	py23char(0x17E): 0x436, # zhe
 	'z': 0x437,
 	'i': 0x438,
 	'j': 0x439,
@@ -946,16 +1000,16 @@ _ISO9RUS = {\
 	'f': 0x444,
 	'h': 0x445,
 	'c': 0x446, # ts
-	unichr(0x10D): 0x447, # ch
-	unichr(0x161): 0x448, # sh
-	unichr(0x15D): 0x449, # shch
-	# unichr(0x2BA): 0x44a, # hard - same upper & lowercase
+	py23char(0x10D): 0x447, # ch
+	py23char(0x161): 0x448, # sh
+	py23char(0x15D): 0x449, # shch
+	# py23char(0x2BA): 0x44a, # hard - same upper & lowercase
 	'y': 0x44b,
-	# unichr(0x2B9): 0x44c, # soft - same upper & lowercase
-	unichr(0xE8): 0x44d, # ye
-	unichr(0x0FB): 0x44e, #yu
-	unichr(0x0E2): 0x44f, # ya
-	unichr(0x0EB): 0x451, #  io
+	# py23char(0x2B9): 0x44c, # soft - same upper & lowercase
+	py23char(0xE8): 0x44d, # ye
+	py23char(0x0FB): 0x44e, #yu
+	py23char(0x0E2): 0x44f, # ya
+	py23char(0x0EB): 0x451, #  io
     }
 
 TransliterationScheme('CYRILLIC', 'ISO9RUS', _ISO9RUS)
@@ -981,7 +1035,7 @@ def main(argv=None):
     try:    
         text, inFormat, outFormat = argv[1:4]
     except ValueError:
-        print main.__doc__
+        print(main.__doc__)
         return 2
     inFormat = inFormat.upper()
     outFormat = outFormat.upper()
@@ -990,13 +1044,13 @@ def main(argv=None):
         f = open(text)
     except IOError:
         # it wasn't, so it must be the actual text
-        print transliterate(text, inFormat, outFormat)
+        print(transliterate(text, inFormat, outFormat))
         return 0
     else:
         i = 1
         for text in f.readlines():
             if len(text) > 0 and not text.startswith('#'):
-                print transliterate(text, inFormat, outFormat).strip('\n')
+                print(transliterate(text, inFormat, outFormat).strip('\n'))
             i = i + 1
         f.close()
         return 0
