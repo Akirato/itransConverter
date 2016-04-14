@@ -1,4 +1,4 @@
-__author__ = ["Nurendra Choudhary nurendrachoudhary31@gmail.com","Anoop Kunchukuttan anoop.kunchukuttan@gmail.com"]
+__author__ = ["Nurendra Choudhary <nurendrachoudhary31@gmail.com>","Anoop Kunchukuttan <anoop.kunchukuttan@gmail.com>"]
 __license__ = "GPLv3"
 # Indic NLP Library is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -154,18 +154,3 @@ class ItransTransliterator(object):
         else:
             return text
 
-if __name__ == '__main__': 
-
-    if len(sys.argv)<4:
-        print("Usage: python unicode_transliterate.py <infile> <outfile> <src_language> <tgt_language>")
-        sys.exit(1)
-
-    src_language=sys.argv[3]
-    tgt_language=sys.argv[4]
-
-    # Do normalization 
-    with codecs.open(sys.argv[1],'r','utf-8') as ifile:
-        with codecs.open(sys.argv[2],'w','utf-8') as ofile:
-            for line in ifile.readlines():
-                transliterated_line=UnicodeIndicTransliterator.transliterate(line,src_language,tgt_language)
-                ofile.write(transliterated_line)

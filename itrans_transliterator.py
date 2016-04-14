@@ -1,4 +1,4 @@
-__author__ = ["Nurendra Choudhary nurendrachoudhary31@gmail.com","Anoop Kunchukuttan anoop.kunchukuttan@gmail.com"]
+__author__ = ["Nurendra Choudhary <nurendrachoudhary31@gmail.com>","Anoop Kunchukuttan <anoop.kunchukuttan@gmail.com>"]
 __license__ = "GPLv3"
 """ Transliterate texts between unicode and standard transliteration schemes.
 
@@ -20,21 +20,6 @@ CYRILLIC
 New character blocks and transliteration schemes can be added by creating
 new CharacterBlock and TransliterationScheme objects.
 
-COMMAND LINE USAGE
-----------------------------
-
-python transliterator.py text inputFormat outputFormat
-
-... writes the transliterated text to stdout
-
-text -- the text to be transliterated OR the name of a file containing the text
-inputFormat -- the name of the character block or transliteration scheme that
-               the text is to be transliterated FROM, e.g. 'CYRILLIC', 'IAST'.
-               Not case-sensitive
-outputFormat -- the name of the character block or transliteration scheme that
-               the text is to be transliterated TO, e.g. 'CYRILLIC', 'IAST'.
-               Not case-sensitive
-               
 USAGE
 --------
 Transliterate a text:
@@ -102,7 +87,7 @@ is there a problem with implicit A before visarga?
 
 
 """
-__version__ = '0.1'
+__version__ = '2.0'
 
 import unicodedata
 #from sets import Set
@@ -161,10 +146,11 @@ def _unrecognised(achr):
         raise KeyError(achr)
 
 def py23char(x):
-	try:
-		return unichr(x)
-	except:
-		return chr(x)
+    try:
+        m = unichr(x)
+        return m
+    except:
+        return chr(x)
  
 class TLCharacter (object):
     """ Class representing a Unicode character with its equivalents.
@@ -601,6 +587,10 @@ class _Devanagari(object):
             
             
         result = []
+        try:
+            text = text.decode()
+        except:
+        	pass
         text = self._preprocess(text)
         i = 0
         prevMatch = None
@@ -1020,49 +1010,3 @@ _ISO9RUS = {\
 
 TransliterationScheme('CYRILLIC', 'ISO9RUS', _ISO9RUS)
 
-def main(argv=None):
-    """ Call transliterator from a command line.
-    
-    python transliterator.py text inputFormat outputFormat
-    
-    ... writes the transliterated text to stdout
-    
-    text -- the text to be transliterated OR the name of a file containing the text
-    inputFormat -- the name of the character block or transliteration scheme that
-                   the text is to be transliterated FROM, e.g. 'CYRILLIC', 'IAST'.
-                   Not case-sensitive
-    outputFormat -- the name of the character block or transliteration scheme that
-                   the text is to be transliterated TO, e.g. 'CYRILLIC', 'IAST'.
-                   Not case-sensitive
-    
-    """
-    if argv is None:
-        argv = sys.argv
-    try:    
-        text, inFormat, outFormat = argv[1:4]
-    except ValueError:
-        print(main.__doc__)
-        return 2
-    inFormat = inFormat.upper()
-    outFormat = outFormat.upper()
-    # try assuming "text" is a filename
-    try:
-        f = open(text)
-    except IOError:
-        # it wasn't, so it must be the actual text
-        print(transliterate(text, inFormat, outFormat))
-        return 0
-    else:
-        i = 1
-        for text in f.readlines():
-            if len(text) > 0 and not text.startswith('#'):
-                try:
-                    print(transliterate(text, inFormat, outFormat).strip('\n'))
-                except:
-                    print(transliterate(text, inFormat, outFormat).decode().strip('\n'))
-            i = i + 1
-        f.close()
-        return 0
-            
-if __name__ == "__main__":
-    sys.exit(main())
