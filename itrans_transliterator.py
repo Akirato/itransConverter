@@ -1,3 +1,5 @@
+__author__ = ["Nurendra Choudhary nurendrachoudhary31@gmail.com","Anoop Kunchukuttan anoop.kunchukuttan@gmail.com"]
+__license__ = "GPLv3"
 """ Transliterate texts between unicode and standard transliteration schemes.
 
 Transliterate texts between non-latin scripts and commonly-used latin

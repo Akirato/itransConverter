@@ -1,7 +1,5 @@
-# Copyright Anoop Kunchukuttan 2013 - present
-#
-# This file is part of Indic NLP Library.
-# 
+__author__ = ["Nurendra Choudhary nurendrachoudhary31@gmail.com","Anoop Kunchukuttan anoop.kunchukuttan@gmail.com"]
+__license__ = "GPLv3"
 # Indic NLP Library is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -17,8 +15,6 @@
 #
 
 #Program for text written in one Indic script to another based on Unicode mappings. 
-#
-# @author Anoop Kunchukuttan 
 #
 
 import sys, codecs, itertools, re
